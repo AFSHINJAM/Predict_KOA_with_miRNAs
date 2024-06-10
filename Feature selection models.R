@@ -12,7 +12,7 @@ library(ROCR)
 setwd("~/XXXXX")
 
 #load data
-DATA <- read_excel("C:/Users/afshi/OneDrive - McGill University/New folder/merged_data.xlsx")
+DATA <- read_excel("data/data.xlsx")
 
 # Custom Control Parameters
 DATA$`no-prog/prog` <- as.factor(DATA$`no-prog/prog`)
@@ -296,7 +296,7 @@ print(paste("AUC:", round(auc, 2)))
 ## DT model
 
 # Read data
-DATA <- read_excel("C:/Users/afshi/OneDrive - McGill University/New folder/merged_data.xlsx")
+DATA <- read_excel("data/data.xlsx")
 
 # Convert necessary columns to factors
 DATA$`no-prog/prog` <- as.factor(DATA$`no-prog/prog`)
@@ -398,7 +398,7 @@ text(0.2, 0.8, paste("AUC =", round(auc_value, 3)), cex = 1.2)
 ## Recursive Feature Elimination model
 
 # Read data
-DATA <- read_excel("C:/Users/afshi/OneDrive - McGill University/New folder/merged_data.xlsx")
+DATA <- read_excel("data/data.xlsx")
 
 # Convert necessary columns to factors
 DATA$`no-prog/prog` <- as.factor(DATA$`no-prog/prog`)
@@ -458,7 +458,7 @@ ggplot(data = result_rfe2, metric = "Accuracy") + theme_bw()
 
 ## Sparse Partial Least Squares Regression
 
-DATA <- read_excel("C:/Users/afshi/OneDrive - McGill University/New folder/merged_data.xlsx")
+DATA <- read_excel("data/data.xlsx")
 
 set.seed(123)
 X<- DATA[,1:111]
