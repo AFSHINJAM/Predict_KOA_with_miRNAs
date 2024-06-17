@@ -162,7 +162,7 @@ plot(Ridge$finalModel, xvar = 'lambda', label = TRUE)
 plot(Ridge$finalModel, xvar = 'dev', label = TRUE)
 plot(varImp(Ridge, scale = TRUE), top = 10, main = "glmnet")
 
-##Finding best threshold in LASSO model
+##Finding best threshold in ridge regression model
 
 library(ROCR)
 pred <- predict(Ridge, test, type='prob')[,2]
@@ -317,7 +317,6 @@ custom <- trainControl(method = "repeatedcv",
                        classProbs = TRUE,
                        summaryFunction = twoClassSummary)
 
-# Rename columns to make them valid R variable names
 rename_columns <- function(df) {
   colnames(df) <- make.names(colnames(df))
   return(df)
@@ -326,7 +325,6 @@ rename_columns <- function(df) {
 train <- rename_columns(train)
 test <- rename_columns(test)
 
-# Ensure target variable levels are valid R variable names
 levels(train$no.prog.prog) <- make.names(levels(train$no.prog.prog))
 levels(test$no.prog.prog) <- make.names(levels(test$no.prog.prog))
 
@@ -345,10 +343,7 @@ DT <- train(no.prog.prog ~ .,
             trControl = custom,
             metric = "ROC")
 
-# Print model summary
 print(DT)
-
-# Plot Results
 plot(DT)
 
 # Predict on the test set
@@ -446,138 +441,6 @@ result_rfe2 <- rfe(x = x_train,
                   rfeControl = control, 
                   metric = "Accuracy")
 print(result_rfe2)
-
-
-# Print the selected features
 predictors(result_rfe2)
-
-# Print the results visually
 ggplot(data = result_rfe2, metric = "Accuracy") + theme_bw()
-
-################################################################################
-
-## Sparse Partial Least Squares Regression
-
-DATA <- read_excel("data/data.xlsx")
-
-set.seed(123)
-X<- DATA[,1:111]
-Y<- DATA$`no-prog/prog`
-srbct.splsda <- mixOmics:: splsda(X, Y, ncomp = 10, scale = TRUE)
-
-plotIndiv(srbct.splsda , comp = 1:2, 
-          group = DATA$`no-prog/prog`, ind.names = FALSE, 
-          ellipse = TRUE, 
-          legend = TRUE,legend.title = "Progressor", title = '(a) sPLSDA with confidence ellipses')
-
-background = background.predict(srbct.splsda, comp.predicted=2, dist = "max.dist")
-
-plotIndiv(srbct.splsda, comp = 1:2,
-          group = DATA$`no-prog/prog`, ind.names = FALSE, 
-          background = background, 
-          legend = TRUE,legend.title = "Progressor", title = " (b) sPLSDA with prediction background")
-
-perf.splsda.srbct <- perf(srbct.splsda, validation = "Mfold", scale=TRUE,
-                          folds = 5, nrepeat = 50, 
-                          progressBar = TRUE, auc = TRUE) 
-
-# plot the outcome of performance evaluation across all ten components
-plot(perf.splsda.srbct, col = color.mixo(5:7), sd = TRUE,
-     legend.position = "horizontal")
-perf.splsda.srbct$choice.ncomp
-
-list.keepX <- c(1:20)
-tune.splsda.srbct <- mixOmics:: tune.splsda(X, Y, ncomp = 2, 
-                                            validation = 'Mfold',scale = TRUE,
-                                            folds = 3, nrepeat = 100, 
-                                            dist = 'max.dist', 
-                                            measure = "AUC", 
-                                            test.keepX = list.keepX,
-                                            cpus = 2) 
-plot(tune.splsda.srbct, col = color.jet(2))
-
-
-tune.splsda.srbct$choice.ncomp$ncomp
-tune.splsda.srbct$choice.keepX 
-optimal.ncomp <- tune.splsda.srbct$choice.ncomp$ncomp
-optimal.keepX <- tune.splsda.srbct$choice.keepX[1:optimal.ncomp]
-
-final.splsda <- mixOmics:: splsda(X, Y, scale=TRUE,
-                                  ncomp = 2, 
-                                  keepX = c(2,1))
-
-plotIndiv(final.splsda, comp = c(1,2), 
-          group = DATA$`no-prog/prog`, ind.names = FALSE, 
-          ellipse = TRUE, legend = TRUE,legend.title = "Progressor", 
-          title = 'sPLS-DA, comp 1 & 2')
-
-Y <- as.factor(Y)
-legend=list(legend = levels(Y), 
-            col = unique(color.mixo(Y)),
-            title = "Progressor", 
-            cex = 0.7)
-cim <- cim(final.splsda, row.sideColors = color.mixo(Y), cluster="both",
-           legend = legend)
-perf.splsda.srbct <- perf(final.splsda, scale=TRUE,
-                          folds = 5, nrepeat = 100, 
-                          validation = "Mfold", dist = "max.dist",  
-                          progressBar = FALSE)
-par(mfrow=c(1,2))
-plot(perf.splsda.srbct$features$stable[[1]], type = 'h', 
-     ylab = 'Stability', lwd = 2,
-     xlab = 'Features', cex.axis= 0.5,cex.lab=1,
-     main = '(a) Comp 1', las =2)
-plot(perf.splsda.srbct$features$stable[[2]], type = 'h', 
-     ylab = 'Stability', 
-     xlab = 'Features', cex.axis= 0.5,cex.lab=1,
-     main = '(b) Comp 2', las =2)
-
-plotVar(final.splsda, comp = c(1,2), cex = 4)
-
-
-set.seed(123)
-n <- nrow(DATA)
-n_train <- round(0.8 * n)
-
-# Randomly select indices for training and testing sets
-train_indices <- sample(1:n, n_train, replace = FALSE)
-test_indices <- setdiff(1:n, train_indices)
-
-# Define X.train, Y.train, X.test, and Y.test
-X.train <- scale(DATA[train_indices, 1:111], center = TRUE)
-Y.train <- DATA$`no-prog/prog`[train_indices]
-X.test <- scale(DATA[test_indices, 1:111], center = TRUE)
-Y.test <- DATA$`no-prog/prog`[test_indices]
-Y.test<- as.factor(Y.test)
-
-
-train.splsda.srbct <- mixOmics:: splsda(X.train, Y.train, scale=TRUE,
-                                        ncomp = 2, keepX = c(4,1))
-predict.splsda.srbct <- predict(train.splsda.srbct, X.test, 
-                                dist = "mahalanobis.dist")
-predict.comp <- predict.splsda.srbct$class$mahalanobis.dist[,1]
-table(predict.comp, Y.test)
-
-# Confusion matrix
-conf_matrix <- table(predict.comp, Y.test)
-print(conf_matrix)
-
-# Define the elements of the confusion matrix
-TP <- conf_matrix[2, 2]
-TN <- conf_matrix[1, 1]
-FP <- conf_matrix[2, 1]
-FN <- conf_matrix[1, 2]
-
-auc.splsda = auroc(train.splsda.srbct, roc.comp = 1, print = FALSE)
-
-auc.splsda = auroc(train.splsda.srbct, roc.comp = 2, print = FALSE)
-
-# Calculate Sensitivity
-sensitivity <- TP / (TP + FN)
-print(paste("Sensitivity:", sensitivity))
-
-# Calculate Specificity
-specificity <- TN / (TN + FP)
-print(paste("Specificity:", specificity))
-
 ################################################################################
